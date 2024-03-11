@@ -36,6 +36,9 @@ const userSchema = new mongoose.Schema({
         type: String,
 
     },
+    otpExpiration: {
+        Date,
+    },
     accountStatus: {
         type: String,
         enum: [ "inactive", "active"],
@@ -45,8 +48,6 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-
-    
 },
 {
     versionKey: false,

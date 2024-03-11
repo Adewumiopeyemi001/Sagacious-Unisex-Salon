@@ -6,6 +6,7 @@ const emailSender = require('../middlewares/email');
 // const verifyOtp = require('../middlewares/verification');
 const mongoose = require("mongoose");
 const User = require('../models/user.models');
+const { OTP_EXPIRATION_TIME } = require("../config/constants");
 
 exports.signup = async (req, res) => {
     try {
@@ -36,6 +37,11 @@ exports.signup = async (req, res) => {
         };
 
         const otp = generateOTP();
+        const otpExpiration = new Date();
+        otpExpiration.setMinutes(otpExpiration.getMinutes() + OTP_EXPIRATION_TIME); // Set expiration time
+
+        // Save OTP and its expiration time in the user document
+        
 
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -48,7 +54,8 @@ exports.signup = async (req, res) => {
             gender,
             userName,
             otp,
-            password: hashedPassword
+            password: hashedPassword,
+            otpExpiration,
         });
         await newUser.save();
         await emailSender(email, userName, otp);
@@ -65,7 +72,14 @@ exports.isOtpVerified = async (req, res) => {
         if (!user) {
             return res.status(400).json({message: "Please kindly signup"});
         }
+
+        // Check if OTP exists and if it's expired
         const userOtp = user.otp;
+        const otpExpiration = user.otpExpiration;
+        if (!userOtp || otpExpiration < new Date()) {
+            return res.status(401).json({ message: "OTP expired or invalid" });
+        }
+
         if(userOtp == otp) {
             user.isEmailVerify = true;
             user.accountStatus = "active"; 
