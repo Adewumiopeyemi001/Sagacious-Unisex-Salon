@@ -1,9 +1,12 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const emailSender = require('../middlewares/email');
+// const emailSender = require('../middlewares/email');
 // const mongoose = require("mongoose");
+const ejs = require('ejs');
+const path = require('path');
 const User = require('../models/user.models');
 const { OTP_EXPIRATION_TIME } = require("../config/constants");
+const { emailSenderTemplate } = require("../middlewares/email");
 
 exports.signup = async (req, res) => {
     try {
@@ -55,13 +58,41 @@ exports.signup = async (req, res) => {
             otpExpiration,
         });
         await newUser.save();
-        await emailSender(email, userName, otp);
+
+        // Send the token email
+        await ejs.renderFile(
+            path.join(__dirname, "../public/signup.ejs"),
+            {
+              title: `Hello ${userName},`,
+              body: "Welcome",
+              userName: userName,
+              otp: otp,
+            },
+            async (err, data) => {
+              await emailSenderTemplate(data, "Welcome to Sagacious Unisex Salon!", email);
+            }
+          );
+
         res.status(201).json({message: "Details received, please check your email to verify your account"});
+
+        // After the client confirms by token, send the account created successfully email
+        await ejs.renderFile(
+            path.join(__dirname, "../public/accountcreation.ejs"),
+            {
+              title: `Hello ${userName},`,
+              body: "Welcome",
+              userName: userName,
+            },
+            async (err, data) => {
+              await emailSenderTemplate(data, "Account Created Successfully!", email);
+            }
+          );
     } catch (err) {
         console.error(err);
         return res.status(500).json({ message: "Error saving user" });
     }
 };
+
 exports.isOtpVerified = async (req, res) => {
     try{
         const otp = req.query.otp;
