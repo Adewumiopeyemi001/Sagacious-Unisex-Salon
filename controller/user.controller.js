@@ -75,18 +75,6 @@ exports.signup = async (req, res) => {
 
         res.status(201).json({message: "Details received, please check your email to verify your account"});
 
-        // After the client confirms by token, send the account created successfully email
-        await ejs.renderFile(
-            path.join(__dirname, "../public/accountcreation.ejs"),
-            {
-              title: `Hello ${userName},`,
-              body: "Welcome",
-              userName: userName,
-            },
-            async (err, data) => {
-              await emailSenderTemplate(data, "Account Created Successfully!", email);
-            }
-          );
     } catch (err) {
         console.error(err);
         return res.status(500).json({ message: "Error saving user" });
@@ -120,6 +108,21 @@ exports.isOtpVerified = async (req, res) => {
             user.otp = null,
             user.otpExpiration = null,
             await user.save();
+
+            
+        // After the client confirms by token, send the account created successfully email
+        await ejs.renderFile(
+            path.join(__dirname, "../public/accountcreation.ejs"),
+            {
+              title: `Hello ${userName},`,
+              body: "Welcome",
+              userName: userName,
+            },
+            async (err, data) => {
+              await emailSenderTemplate(data, "Account Created Successfully!", email);
+            }
+          );
+
         return res.status(200).json({message: "Account Verified Successfully"});  
         }     
         
@@ -168,7 +171,18 @@ exports.resendOtp = async (req, res) => {
         await user.save();
 
         // Send the new OTP via email
-        await emailSender(email, user.userName, newOtp);
+        await ejs.renderFile(
+            path.join(__dirname, "../public/resendotp.ejs"),
+            {
+              title: `Hello ${user.userName},`,
+              body: "Welcome",
+              userName: user.userName,
+              otp: user.otp,
+            },
+            async (err, data) => {
+              await emailSenderTemplate(data, "New OTP!", email);
+            }
+          );
 
         return res.status(200).json({ message: "New OTP Sent Successfully" });
     } catch (err) {
